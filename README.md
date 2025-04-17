@@ -34,5 +34,4 @@ An intelligent, multilingual chatbot built to answer **financial questions** fro
 
 ---
 
-## 📂 Project Structure
 
