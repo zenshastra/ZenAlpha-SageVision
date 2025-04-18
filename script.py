@@ -64,7 +64,6 @@ if 'initialized' not in st.session_state:
     st.session_state.language_code = 'en'  # Default to English code
     st.session_state.voice_input_text = ""
     st.session_state.temp_dir = tempfile.mkdtemp()
-    st.session_state.current_page_view = None  # For PDF page viewer
     
     # Initialize Gemini model with better caching strategy
     st.session_state.gemini_chat = genai.GenerativeModel('gemini-1.5-flash-001-tuning').start_chat(
@@ -146,62 +145,6 @@ def handle_voice_input():
     if text and text != "Sorry, I couldn't understand what you said." and text != "Sorry, speech service is unavailable right now.":
         st.session_state.voice_input_text = text
 
-# ---------------- Visual Content Handling ---------------- #
-
-def create_chart_from_data(chart_data, chart_type):
-    """Create a matplotlib chart from extracted data"""
-    fig, ax = plt.subplots(figsize=(8, 4))
-    
-    try:
-        # Parse data from the description
-        if "values:" in chart_data.lower():
-            data_str = chart_data.lower().split("values:")[1].strip()
-            # Extract numbers from data string
-            values = [float(x) for x in re.findall(r'\d+(?:\.\d+)?', data_str)]
-            
-            if chart_type == "bar chart":
-                labels = [f"Item {i+1}" for i in range(len(values))]
-                ax.bar(labels, values)
-                ax.set_title("Reconstructed Bar Chart from Document")
-                
-            elif chart_type == "line chart":
-                ax.plot(range(1, len(values)+1), values, marker='o')
-                ax.set_title("Reconstructed Line Chart from Document")
-                
-            elif chart_type == "pie chart":
-                ax.pie(values, labels=[f"{v}%" for v in values], autopct='%1.1f%%')
-                ax.set_title("Reconstructed Pie Chart from Document")
-                
-            else:
-                ax.bar(range(len(values)), values)  # Default to bar chart
-                ax.set_title(f"Reconstructed {chart_type} from Document")
-                
-            return fig
-        else:
-            return None
-    except:
-        return None
-
-def create_table_from_data(table_data):
-    """Create a pandas DataFrame from extracted table data"""
-    try:
-        # Split by rows
-        rows = table_data.strip().split('\n')
-        if len(rows) < 2:
-            return None
-            
-        # Create DataFrame
-        df = pd.DataFrame([row.split() for row in rows])
-        
-        # If first row seems like a header, set it as such
-        if len(df) > 1:
-            df.columns = df.iloc[0]
-            df = df[1:]
-            
-        return df
-    except:
-        return None
-
 # ---------------- Regional Language Mapping ---------------- #
 
 REGIONAL_LANGUAGES = {
@@ -278,119 +221,12 @@ def process_query_async(input_text, target_lang_code, target_lang_name):
     else:
         final_response = gemini_reply
         
-    # Step 7: Check for references to specific pages and visual content
-    page_references = re.findall(r'page\s+(\d+)', finbert_response.lower())
-    
     result = {
         "text": final_response,
-        "category": query_category,
-        "pages_referenced": list(set(int(p) for p in page_references)) if page_references else []
+        "category": query_category
     }
     
     return result
-
-# ---------------- UI Components ---------------- #
-
-def render_pdf_page_viewer():
-    """Render a simplified PDF page viewer based on referenced pages"""
-    if st.session_state.structured_content and st.session_state.current_page_view:
-        page_num = st.session_state.current_page_view
-        
-        # Find this page in structured content
-        page_data = None
-        for page in st.session_state.structured_content["content"]:
-            if page["page_number"] == page_num:
-                page_data = page
-                break
-                
-        if page_data:
-            st.subheader(f"📄 Page {page_num} Content")
-            
-            # Display text content
-            if page_data["text"]:
-                with st.expander("📝 Text Content", expanded=True):
-                    st.write(page_data["text"])
-            
-            # Display tables if any
-            if page_data["tables"]:
-                with st.expander(f"📊 Tables ({len(page_data['tables'])})", expanded=True):
-                    for i, table in enumerate(page_data["tables"]):
-                        st.markdown(f"**Table {i+1}:**")
-                        table_df = create_table_from_data(table["content"])
-                        if table_df is not None:
-                            st.dataframe(table_df)
-                        else:
-                            st.code(table["content"])
-            
-            # Display charts if any
-            if page_data["charts"]:
-                with st.expander(f"📈 Charts ({len(page_data['charts'])})", expanded=True):
-                    for i, chart in enumerate(page_data["charts"]):
-                        st.markdown(f"**Chart {i+1} ({chart['type']}):**")
-                        st.markdown(f"*{chart['description']}*")
-                        
-                        # Try to visualize the chart
-                        fig = create_chart_from_data(chart["data"], chart["type"])
-                        if fig:
-                            st.pyplot(fig)
-                        else:
-                            st.write(chart["data"])
-            
-            # Display images if any
-            if page_data["images"]:
-                with st.expander(f"🖼️ Images ({len(page_data['images'])})", expanded=True):
-                    for i, img in enumerate(page_data["images"]):
-                        st.markdown(f"**Image {i+1}:**")
-                        st.markdown(f"*{img['description']}*")
-
-def render_sidebar():
-    """Render the sidebar with document navigation options"""
-    with st.sidebar:
-        st.header("📑 Document Navigator")
-        
-        if st.session_state.structured_content:
-            total_pages = st.session_state.structured_content["total_pages"]
-            
-            st.write(f"Document has {total_pages} pages")
-            
-            # Add page selector
-            selected_page = st.number_input(
-                "Select a page to view:", 
-                min_value=1, 
-                max_value=total_pages,
-                value=st.session_state.current_page_view if st.session_state.current_page_view else 1
-            )
-            
-            if selected_page != st.session_state.current_page_view:
-                st.session_state.current_page_view = selected_page
-                st.rerun()
-            
-            # Add page navigation buttons
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button("⬅️ Previous Page") and st.session_state.current_page_view > 1:
-                    st.session_state.current_page_view -= 1
-                    st.rerun()
-            
-            with col2:
-                if st.button("➡️ Next Page") and st.session_state.current_page_view < total_pages:
-                    st.session_state.current_page_view += 1
-                    st.rerun()
-                    
-            # Document content overview
-            st.subheader("Document Content")
-            
-            # Count tables, charts, and images
-            tables_count = sum(len(page["tables"]) for page in st.session_state.structured_content["content"])
-            charts_count = sum(len(page["charts"]) for page in st.session_state.structured_content["content"])
-            images_count = sum(len(page["images"]) for page in st.session_state.structured_content["content"])
-            
-            st.markdown(f"""
-            - 📝 Text content across {total_pages} pages
-            - 📊 {tables_count} tables identified
-            - 📈 {charts_count} charts/graphs detected
-            - 🖼️ {images_count} images found
-            """)
 
 # ---------------- Onboarding ---------------- #
 
@@ -398,9 +234,6 @@ if not st.session_state.user_info:
     onboarding_form()
 else:
     st.success("✅ You're onboarded!")
-
-    # Render sidebar
-    render_sidebar()
 
     country = st.session_state.user_info.get("country")
     state = st.session_state.user_info.get("state")
@@ -425,72 +258,51 @@ else:
         st.session_state.language = selected_language
         st.session_state.language_code = LANGUAGE_CODES.get(selected_language, 'en')
 
-    # Main content area
-    main_content_col, page_viewer_col = st.columns([2, 1])
+    # Main content area - full width since sidebar is removed
+    st.header(f"💬 Chat in {st.session_state.language}")
+
+    # Display chat history
+    chat_container = st.container()
+    with chat_container:
+        for message in st.session_state.chat_history:
+            if message["role"] == "user":
+                st.markdown(f"**You:** {message['content']}")
+            else:
+                st.markdown(f"**Bot:** {message['content']}")
+                
+                # Add audio player for English responses
+                if st.session_state.language == "English" and message.get("audio"):
+                    st.markdown(message["audio"], unsafe_allow_html=True)
+
+    # Show voice input option only for English
+    voice_placeholder = st.empty()
     
-    with main_content_col:
-        # ---------------- Chat Section with Conversation History ---------------- #
-        st.header(f"💬 Chat in {st.session_state.language}")
+    # Voice input button - placed BEFORE text input field
+    if st.session_state.language == "English":
+        if st.button("🎤 Voice Input", key="voice_button"):
+            handle_voice_input()
+    
+    # Display voice transcription if available
+    if st.session_state.voice_input_text:
+        voice_placeholder.info(f"You said: {st.session_state.voice_input_text}")
+    
+    # Text input field - set default value from voice input if available
+    if st.session_state.language == "English" and st.session_state.voice_input_text:
+        user_input = st.text_input("Ask your financial question:", 
+                                value=st.session_state.voice_input_text,
+                                key=f"input_{len(st.session_state.chat_history)}")
+        # Clear voice input after using it
+        st.session_state.voice_input_text = ""
+    else:
+        user_input = st.text_input("Ask your financial question:",
+                                key=f"input_{len(st.session_state.chat_history)}")
 
-        # Display chat history
-        chat_container = st.container()
-        with chat_container:
-            for message in st.session_state.chat_history:
-                if message["role"] == "user":
-                    st.markdown(f"**You:** {message['content']}")
-                else:
-                    st.markdown(f"**Bot:** {message['content']}")
-                    
-                    # Add audio player for English responses
-                    if st.session_state.language == "English" and message.get("audio"):
-                        st.markdown(message["audio"], unsafe_allow_html=True)
-                    
-                    # If this message references pages, provide page links
-                    if message.get("pages_referenced"):
-                        pages_text = ", ".join(map(str, message["pages_referenced"]))
-                        st.info(f"💡 This answer references content from page(s): {pages_text}")
-                        
-                        # Allow viewing a specific referenced page
-                        if len(message["pages_referenced"]) > 0:
-                            for page in message["pages_referenced"]:
-                                if st.button(f"View Page {page}", key=f"view_page_{page}_{len(st.session_state.chat_history)}"):
-                                    st.session_state.current_page_view = page
-                                    st.rerun()
-
-        # Show voice input option only for English
-        voice_placeholder = st.empty()
+    if user_input:
+        # Add user message to chat history
+        st.session_state.chat_history.append({"role": "user", "content": user_input})
         
-        # Voice input button - placed BEFORE text input field
-        if st.session_state.language == "English":
-            if st.button("🎤 Voice Input", key="voice_button"):
-                handle_voice_input()
-        
-        # Display voice transcription if available
-        if st.session_state.voice_input_text:
-            voice_placeholder.info(f"You said: {st.session_state.voice_input_text}")
-        
-        # Text input field - set default value from voice input if available
-        if st.session_state.language == "English" and st.session_state.voice_input_text:
-            user_input = st.text_input("Ask your financial question:", 
-                                    value=st.session_state.voice_input_text,
-                                    key=f"input_{len(st.session_state.chat_history)}")
-            # Clear voice input after using it
-            st.session_state.voice_input_text = ""
-        else:
-            user_input = st.text_input("Ask your financial question:",
-                                    key=f"input_{len(st.session_state.chat_history)}")
-
-        if user_input:
-            # Add user message to chat history
-            st.session_state.chat_history.append({"role": "user", "content": user_input})
-            
-            # Force refresh to show user message immediately
-            st.rerun()
-            
-    # PDF Page Viewer (in the side column)
-    with page_viewer_col:
-        if st.session_state.current_page_view:
-            render_pdf_page_viewer()
+        # Force refresh to show user message immediately
+        st.rerun()
 
 # Process the latest message if it hasn't been processed yet
 if st.session_state.chat_history and len(st.session_state.chat_history) % 2 == 1:
@@ -508,14 +320,12 @@ if st.session_state.chat_history and len(st.session_state.chat_history) % 2 == 1
         # Extract response text and metadata
         response_text = response_data["text"]
         query_category = response_data["category"]
-        pages_referenced = response_data["pages_referenced"]
         
         # Prepare bot message
         bot_message = {
             "role": "assistant", 
             "content": response_text,
-            "category": query_category,
-            "pages_referenced": pages_referenced
+            "category": query_category
         }
         
         # Add text-to-speech for English responses
@@ -536,10 +346,6 @@ if st.session_state.chat_history and len(st.session_state.chat_history) % 2 == 1
         
         # Add bot response to chat history
         st.session_state.chat_history.append(bot_message)
-        
-        # If response references pages, update current view to first referenced page
-        if pages_referenced and not st.session_state.current_page_view:
-            st.session_state.current_page_view = pages_referenced[0]
         
         # Force refresh to show response
         st.rerun()
