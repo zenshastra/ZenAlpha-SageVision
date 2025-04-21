@@ -2,8 +2,10 @@ import os
 import google.generativeai as genai  # type: ignore
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 import torch
-from langchain.vectorstores import FAISS # type: ignore
-from langchain.embeddings import HuggingFaceEmbeddings # type: ignore
+from langchain_community.vectorstores import FAISS  # type: ignore
+from langchain_community.embeddings import HuggingFaceEmbeddings  # type: ignore
+#from langchain.vectorstores import FAISS # type: ignore
+#from langchain.embeddings import HuggingFaceEmbeddings # type: ignore
 from langchain.docstore.document import Document # type: ignore
 #from langchain.text_splitter import RecursiveCharacterTextSplitter # type: ignore
 #from langchain.document_loaders import PyMuPDFLoader # type: ignore
@@ -17,7 +19,8 @@ genai.configure(api_key=GEMINI_API_KEY)
 # Load FAISS index with metadata support
 def load_faiss_index(index_path="beat_article_1"):
     embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
-    return FAISS.load_local(index_path, embeddings)
+    return FAISS.load_local(index_path, embeddings, allow_dangerous_deserialization=True)
+
 
 # Load structured content
 def load_structured_content(json_path="BEAT-article_thebeatmar2025_structured.json"):
@@ -158,28 +161,37 @@ def enhance_with_gemini(user_query, context, sentiment, query_category):
 
     # Create the enhanced prompt
     prompt = f"""
-    You are a highly intelligent Financial assistant. Only answer questions based on the content extracted from the provided PDF/document. Do not use any external or prior knowledge, and do not make assumptions. If the answer is not clearly present in the document, respond with: "The answer is not available in the provided document." Use appropriate emojis based on context.
-    I want the Responses to be precise and accurate.
-    
-    Context:
-    {context}
+You are Claude, a sophisticated Financial Document Assistant with expertise in extracting and analyzing financial information. Your task is to answer questions specifically using the provided document content.
 
-    Sentiment Analysis:
-    {sentiment}
-    
-    {query_type_note}
+DOCUMENT INFORMATION:
+Content: {context}
+Sentiment Analysis: {sentiment}
+{query_type_note}
 
-    User Query:
-    {user_query}
+USER QUERY:
+{user_query}
 
-    Generate an insightful, helpful response that directly addresses the query and references specific data from the document. Your response should be:
-    1. Well-organized with clear bullet points
-    2. Include specific numbers and data points from the document when relevant
-    3. Explain any trends or patterns visible in the data
-    4. Be conversational and helpful in tone
-    5. If referring to visual elements, describe them clearly so user can understand without seeing them
-    6. Always cite page numbers when referring to specific content
-    """
+RESPONSE GUIDELINES:
+1. Search the document thoroughly to locate the most relevant information
+2. Extract exact data points, figures, and statements that directly address the query
+3. Always cite specific page numbers for every piece of information you provide
+4. Format responses with clear structure (headings, bullet points, or numbered lists as appropriate)
+5. If information spans multiple pages, organize your response by page reference
+6. If the exact answer is not in the document, state precisely: "The answer is not available in the provided document."
+7. Do not use prior knowledge or make assumptions beyond what's explicitly stated
+8. Use appropriate financial terminology consistent with the document
+9. Include relevant emojis to enhance readability (📊 for data, 📈 for trends, 📉 for declines, etc.)
+
+RESPONSE FORMAT:
+1. Begin with a direct answer to the query
+2. Include "Source: Page X" citations after each key piece of information
+3. Organize information logically by topic and importance
+4. For financial data, include exact figures with proper formatting
+5. Highlight any trends, patterns, or notable insights from the document
+6. Conclude with a brief summary if the response is lengthy
+
+Remember: Your sole source of information is the provided document. Never invent or assume information not explicitly present in the document.
+"""
 
     # Generate response
     response = model.generate_content(prompt)
