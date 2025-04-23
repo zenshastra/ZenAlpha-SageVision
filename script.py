@@ -332,7 +332,7 @@ REGIONAL_LANGUAGES = {
     ("India", "Gujarat"): "Gujarati",
     ("India", "Kerala"): "Malayalam",
     ("India", "Telangana"): "Telugu",
-    ("United States", "North Carolina"): "Spanish",
+    ("USA", "North Carolina"): "Spanish",
     # Add more as needed
 }
 
