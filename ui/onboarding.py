@@ -5,7 +5,7 @@ from db.models import User
 def onboarding_form():
     st.title("🌐 Welcome to Zen-Buddy")
     st.subheader("Zenshastra Agentic AI for Market Commentary")
-    st.subheader("Please provide your details before we start chatting.")
+    st.markdown("<h5>Please provide your details before we start chatting.</h5>", unsafe_allow_html=True)
 
     with st.form("user_form"):
         name = st.text_input("Name")
