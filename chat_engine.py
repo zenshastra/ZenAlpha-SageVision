@@ -18,7 +18,7 @@ genai.configure(api_key=GEMINI_API_KEY)
 
 # Load FAISS index with metadata support
 def load_faiss_index(index_path="beat_article_1"):
-    embeddings = HuggingFaceEmbeddings(vodel_name="sentence-transformers/all-MiniLM-L6-v2")
+    embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
     return FAISS.load_local(index_path, embeddings, allow_dangerous_deserialization=True)
 
 
