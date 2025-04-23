@@ -33,10 +33,9 @@ Fin-Assistant/
 ├── .github/workflows/       # GitHub Actions workflows
 ├── __pycache__/             # Compiled Python files
 ├── db/                      # Database-related files
-├── sebi_faiss_index/        # FAISS index files for SEBI documents
+├── beat_article_1/        # FAISS index files for SEBI documents
 ├── ui/                      # Frontend UI components
 ├── BEAT-article_thebeatmar2025.pdf  # Sample financial article
-├── SEBI_-Securities_Market_Booklet.pdf  # SEBI reference document
 ├── app.py                   # Main Flask application
 ├── chat_engine.py           # Chatbot engine logic
 ├── pdf_to_faiss.py          # PDF to FAISS index converter
@@ -51,7 +50,7 @@ Fin-Assistant/
 
 1. **Clone the Repository**:
    ```bash
-   git clone https://github.com/SpinnovaOps/Fin-Assistant.git
+   git clone https://github.com/zenshastra/ZenAlpha-SageVision/
    cd Fin-Assistant
    ```
 
@@ -93,9 +92,8 @@ Fin-Assistant/
 ## 📄 Sample Documents
 
 - **BEAT-article_thebeatmar2025.pdf**: An article from "The Beat" magazine, March 2025 edition.
-- **SEBI_-Securities_Market_Booklet.pdf**: A comprehensive booklet on securities markets by SEBI.
 
-These documents are used to demonstrate the application's capabilities in parsing and extracting meaningful information.
+This document is used to demonstrate the application's capabilities in parsing and extracting meaningful information.
 
 ---
 
