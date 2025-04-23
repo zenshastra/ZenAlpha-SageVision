@@ -16,3 +16,6 @@ numpy
 googletrans==4.0.0rc1
 SpeechRecognition
 gTTS
+pydantic
+langchain-community
+googletrans
