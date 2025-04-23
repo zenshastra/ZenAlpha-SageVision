@@ -3,7 +3,8 @@ from db.db import SessionLocal
 from db.models import User
 
 def onboarding_form():
-    st.title("🌐 Welcome to Personalized AI, Zen-Buddy")
+    st.title("🌐 Welcome to Zen-Buddy")
+    st.subheader("Zenshastra Agentic AI for Market Commentary")
     st.subheader("Please provide your details before we start chatting.")
 
     with st.form("user_form"):
