@@ -4,7 +4,7 @@ from langchain_community.vectorstores import FAISS # type: ignore
 from langchain.docstore.document import Document # type: ignore
 from PyPDF2 import PdfReader # type: ignore
 import pytesseract # type: ignore
-pytesseract.pytesseract.tesseract_cmd = r'C:\Users\Phanindra BJ\AppData\Local\Programs\Tesseract-OCR\tesseract.exe'
+#pytesseract.pytesseract.tesseract_cmd = r'C:\Users\Phanindra BJ\AppData\Local\Programs\Tesseract-OCR\tesseract.exe'
 from pdf2image import convert_from_path # type: ignore
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -15,9 +15,35 @@ import os
 import json
 import re
 import fitz  # PyMuPDF for better PDF handling # type: ignore
+import shutil  # For directory removal
+import glob    # For file pattern matching
 
 # Set up pytesseract path if needed
 # pytesseract.pytesseract.tesseract_cmd = r'path_to_tesseract_executable'
+
+# Function to clean up previous run artifacts
+def cleanup_previous_artifacts(index_path, pdf_name):
+    """Delete previous FAISS index directory and generated JSON files"""
+    # Delete previous FAISS index directory if it exists
+    if os.path.exists(index_path):
+        print(f"Removing previous FAISS index directory: {index_path}")
+        try:
+            shutil.rmtree(index_path)
+            print(f"Successfully deleted {index_path}")
+        except Exception as e:
+            print(f"Error deleting directory {index_path}: {e}")
+    
+    # Find and delete any JSON files matching the PDF name pattern
+    json_pattern = f"{os.path.splitext(pdf_name)[0]}*_structured.json"
+    json_files = glob.glob(json_pattern)
+    if json_files:
+        print(f"Removing previous JSON files: {json_files}")
+        for json_file in json_files:
+            try:
+                os.remove(json_file)
+                print(f"Successfully deleted {json_file}")
+            except Exception as e:
+                print(f"Error deleting file {json_file}: {e}")
 
 # Load PDF and extract comprehensive information
 def extract_content_from_pdf(pdf_path):
@@ -87,8 +113,10 @@ def extract_content_from_pdf(pdf_path):
     }
     
     # Save the structured content for reference
-    with open(f"{os.path.splitext(pdf_path)[0]}_structured.json", "w") as f:
+    json_output_path = f"{os.path.splitext(pdf_path)[0]}_structured.json"
+    with open(json_output_path, "w") as f:
         json.dump(structured_content, f, indent=2)
+    print(f"Structured content saved to: {json_output_path}")
     
     # Convert to text chunks for embedding
     text_chunks = []
@@ -402,6 +430,10 @@ if __name__ == "__main__":
     pdf_path = "BEAT-article_thebeatmar2025.pdf"
     index_path = "beat_article_1"
 
+    print("Starting process with cleanup...")
+    # First clean up previous artifacts
+    cleanup_previous_artifacts(index_path, pdf_path)
+    
     print("Extracting content from PDF...")
     raw_text, structured_content = extract_content_from_pdf(pdf_path)
     
