@@ -30,18 +30,18 @@
 
 ```
 Fin-Assistant/
-├── .github/workflows/       # GitHub Actions workflows
-├── __pycache__/             # Compiled Python files
-├── db/                      # Database-related files
-├── beat_article_1/        # FAISS index files for SEBI documents
-├── ui/                      # Frontend UI components
+├── .github/workflows/               # GitHub Actions workflows
+├── __pycache__/                     # Compiled Python files
+├── db/                              # Database-related files
+├── beat_article_1/                  # FAISS index files
+├── ui/                              # Frontend UI components
 ├── BEAT-article_thebeatmar2025.pdf  # Sample financial article
-├── app.py                   # Main Flask application
-├── chat_engine.py           # Chatbot engine logic
-├── pdf_to_faiss.py          # PDF to FAISS index converter
-├── requirements.txt         # Python dependencies
-├── script.py                # Utility scripts
-└── user_data.db             # SQLite database file
+├── app.py                           # Main Flask application
+├── chat_engine.py                   # Chatbot engine logic
+├── pdf_to_faiss.py                  # PDF to FAISS index converter
+├── requirements.txt                 # Python dependencies
+├── script.py                        # Utility scripts
+└── user_data.db                     # SQLite database file
 ```
 
 ---
